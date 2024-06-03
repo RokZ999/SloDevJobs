@@ -15,8 +15,6 @@
 		sort: addSortBy()
 	});
 
-	console.log(data);
-
 	const columns = table.createColumns([
 		table.column({
 			accessor: 'company',
