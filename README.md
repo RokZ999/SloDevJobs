@@ -1,38 +1,29 @@
-# create-svelte
+# SloDevJobs 
+loDevJobs is a job listing platform built with SvelteKit and styled using the ShadCN UI library. The main purpose of this project is to eliminate the hassle of opening every job post to see the salary.
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+**<img src="https://github.com/RokZ999/SloDevJobs/assets/71169333/16151eac-bc4c-4dd4-aa59-d03787f7ebf8" width="30"> Demo on Vercel**: https://slo-dev-jobs.vercel.app/
 
-## Creating a project
+# Tech Stack 📚
 
-If you're seeing this, you've probably already done this step. Congrats!
+- **<img src="https://github.com/RokZ999/SloDevJobs/assets/71169333/2afcc092-b5c3-4a37-9a91-4e830cf4a427" width="30"> [Bun](https://bun.sh/)** : Bun is an all-in-one toolkit for JavaScript and TypeScript apps.
+- **<img src="https://github.com/RokZ999/SloDevJobs/assets/71169333/2a9fc93e-42da-4343-8ab1-cdab5b7403c9" width="30"> [SvelteKit](https://kit.svelte.dev/)** :  A framework for building web applications. 
+- **<img src="https://github.com/RokZ999/SloDevJobs/assets/71169333/d68a5f5b-2359-4fc9-a216-48adeadc5d40" width="30"> [ShadCN Svelte](https://www.shadcn-svelte.com/)** : Unofficial port of shadcn/ui to Svelte, and is not affiliated with @shadcn
 
+
+
+# Preview 📸
+![image](https://github.com/RokZ999/SloDevJobs/assets/71169333/203ee723-26d2-4cb0-b543-58cd9139dc78)
+
+
+# Cloning the Repository & Building 🛠️
+Start by cloning the repository and navigating into the project directory:
 ```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+git clone https://github.com/RokZ999/SloDevJobs/
+cd SloDevJobs
 ```
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
+### Frontend:
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+bun run build
+bun start
 ```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
