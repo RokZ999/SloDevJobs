@@ -1,5 +1,5 @@
 # SloDevJobs 
-loDevJobs is a job listing platform built with SvelteKit and styled using the ShadCN UI library. The main purpose of this project is to eliminate the hassle of opening every job post to see the salary.
+SloDevJobs is a job listing platform built with SvelteKit and styled using the ShadCN UI library. The main purpose of this project is to eliminate the hassle of opening every job post to see the salary.
 
 **<img src="https://github.com/RokZ999/SloDevJobs/assets/71169333/16151eac-bc4c-4dd4-aa59-d03787f7ebf8" width="30"> Demo on Vercel**: https://slo-dev-jobs.vercel.app/
 
