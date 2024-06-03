@@ -12,7 +12,8 @@ loDevJobs is a job listing platform built with SvelteKit and styled using the Sh
 
 
 # Preview 📸
-![image](https://github.com/RokZ999/SloDevJobs/assets/71169333/203ee723-26d2-4cb0-b543-58cd9139dc78)
+![image](https://github.com/RokZ999/SloDevJobs/assets/71169333/5c763775-4837-4523-8202-bfb472963b0e)
+
 
 
 # Cloning the Repository & Building 🛠️
