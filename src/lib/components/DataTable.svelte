@@ -35,7 +35,7 @@
 		}),
 		table.column({
 			accessor: 'normalized_salary',
-			header: 'Mesecna Plača',
+			header: 'Mesečna plača',
 			plugins: {
 				sort: {
 					disable: false
