@@ -75,7 +75,7 @@
 	const { headerRows, pageRows, tableAttrs, tableBodyAttrs } = table.createViewModel(columns);
 </script>
 
-<div class="mx-auto w-5/6 items-center justify-center rounded-md border">
+<div class="mx-auto w-5/6 justify-center rounded-md border">
 	<Table.Root {...$tableAttrs}>
 		<Table.Header>
 			{#each $headerRows as headerRow}

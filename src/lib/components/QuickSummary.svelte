@@ -26,25 +26,25 @@
 	}
 </script>
 
-<div class="flex items-center justify-center space-x-1">
+<div class="flex justify-center space-x-1">
 	<Card.Root>
 		<Card.Header>
 			<Card.Title>Število oglasov:</Card.Title>
-			<Card.Description><h2 class="text-2xl">{jobsCount}</h2></Card.Description>
+			<Card.Description><h2 class="h-full w-full text-2xl">{jobsCount}</h2></Card.Description>
 		</Card.Header>
 	</Card.Root>
 	<Card.Root>
 		<Card.Header>
 			<Card.Title>Mediana mesečne plače:</Card.Title>
 			<Card.Description>
-				<h2 class="text-2xl">{mediana_monthly}€</h2></Card.Description
+				<h2 class="h-full w-full text-2xl">{mediana_monthly}€</h2></Card.Description
 			>
 		</Card.Header>
 	</Card.Root>
 	<Card.Root>
 		<Card.Header>
 			<Card.Title>Mediana letne plače:</Card.Title>
-			<Card.Description><h2 class="text-2xl">{mediana_yearly}€</h2></Card.Description>
+			<Card.Description><h2 class="h-full w-full text-2xl">{mediana_yearly}€</h2></Card.Description>
 		</Card.Header>
 	</Card.Root>
 </div>
