@@ -25,7 +25,7 @@
 		},
 		{
 			id: 'normalized_salary',
-			name: 'Mesečna plača',
+			name: 'Plača',
 			formatter: (cell) => `${cell}€`,
 			sort: true
 		},
@@ -115,7 +115,6 @@
 		padding-top: 0.5rem;
 		padding-bottom: 0.5rem;
 		max-width: 80px;
-
 		word-wrap: break-word;
 		overflow-wrap: break-word;
 	}
