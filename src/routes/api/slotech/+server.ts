@@ -124,8 +124,13 @@ function parseSalary(salary: string): number | null {
 		let both = salary.split('-');
 		let left = findNumberInString(both[0]);
 		let right = findNumberInString(both[1]);
+
 		if (salary.includes('uro')) {
-			result = ((left + right) / 2) * 168;
+			if ((left + right) / 2 > 1000) {
+				result = (left + right) / 2;
+			} else {
+				result = ((left + right) / 2) * 168;
+			}
 		} else if (salary.includes('k bruto') || salary.trim().includes('k-')) {
 			result = ((left + right) / 2) * 1000;
 		} else {
@@ -134,6 +139,8 @@ function parseSalary(salary: string): number | null {
 	} else if (salary.includes('uro')) {
 		result = findNumberInString(salary) * 168;
 	} else result = findNumberInString(salary);
+
+	result = result > 100000 ? result / 100 : result;
 
 	return result;
 }

@@ -8,15 +8,20 @@
 	import RangeSlider from 'svelte-range-slider-pips';
 
 	export let data: Array<Job> = [];
+
+	const transformedJobs = data.map((job) => ({
+		...job,
+		company_title: `${job.company} \n ${job.title}`
+	}));
+	data = transformedJobs;
+
 	let filteredData = [...data];
 
 	const columns = [
-		{ id: 'company', name: 'Podjetje', sort: true },
-		{ id: 'title', name: 'Naslov' },
 		{
-			id: 'salary',
-			name: 'Plača',
-			formatter: (cell) => `${cell}€`
+			id: 'company_title',
+			name: 'Podjetje',
+			sort: false
 		},
 		{
 			id: 'normalized_salary',
@@ -24,13 +29,6 @@
 			formatter: (cell) => `${cell}€`,
 			sort: true
 		},
-		{
-			id: 'normalized_salary_yearly',
-			name: 'Letna plača',
-			formatter: (cell) => `${cell}€`,
-			sort: true
-		},
-		{ id: 'time', name: 'Objava oglasa', sort: true },
 		{
 			id: 'url',
 			name: 'URL',
@@ -54,15 +52,15 @@
 	}
 
 	function updateInput(value: string) {
-		if (!document.querySelector('.search input')) return;
-		if (!(document.querySelector('.search input') as HTMLInputElement)) return;
-		if ((document.querySelector('.search input') as HTMLInputElement).value === value) {
-			(document.querySelector('.search input') as HTMLInputElement).value = '';
-		} else {
-			(document.querySelector('.search input') as HTMLInputElement).value = value;
+		const searchInput = document.querySelectorAll('.search input[type="search"]')[1];
+		if (searchInput) {
+			if (searchInput.value === value) {
+				searchInput.value = '';
+			} else {
+				searchInput.value = value;
+			}
+			searchInput.dispatchEvent(new Event('input'));
 		}
-
-		(document.querySelector('.search input') as HTMLInputElement).dispatchEvent(new Event('input'));
 	}
 
 	let salaries = data.map((job) => job.normalized_salary);
@@ -87,36 +85,17 @@
 		all="label"
 		{max}
 		step={0.1}
-		pipstep={20000.0}
+		pipstep={60000.0}
 		bind:values
 	/>
 </div>
-<div>
-	<div class="flex justify-center space-x-2">
-		<Button on:click={() => updateInput('Frontend')}>🌐 Frontend</Button>
-		<Button on:click={() => updateInput('Backend')}>🖥️ Backend</Button>
-		<Button on:click={() => updateInput('Full')}>🔄 Fullstack</Button>
-		<Button on:click={() => updateInput('DevOps')}>♾️ DevOps</Button>
-		<Button on:click={() => updateInput('QA')}>🔍 QA</Button>
-		<Button on:click={() => updateInput('UX')}>🎨 UX</Button>
-		<Button on:click={() => updateInput('UI')}>🖌️ UI</Button>
-	</div>
-
-	<div class="mt-2 flex justify-center space-x-2">
-		<Button on:click={() => updateInput('JavaScript')}>💻 JavaScript</Button>
-		<Button on:click={() => updateInput('Python')}>🐍 Python</Button>
-		<Button on:click={() => updateInput('Java')}>☕ Java</Button>
-		<Button on:click={() => updateInput('C#')}>#️⃣ C#</Button>
-		<Button on:click={() => updateInput('Ruby')}>💎 Ruby</Button>
-		<Button on:click={() => updateInput('Go')}>🏃 Go</Button>
-		<Button on:click={() => updateInput('PHP')}>🐘 PHP</Button>
-	</div>
-
-	<div class="mt-2 flex justify-center space-x-2">
-		<Button on:click={() => updateInput('Junior')}>👶 Junior</Button>
-		<Button on:click={() => updateInput('Mid')}>🧑 Mid</Button>
-		<Button on:click={() => updateInput('Senior')}>🧓 Senior</Button>
-	</div>
+<div class="grid grid-cols-3 gap-4 p-4">
+	<Button on:click={() => updateInput('Frontend')}>🌐 Frontend</Button>
+	<Button on:click={() => updateInput('Backend')}>🖥️ Backend</Button>
+	<Button on:click={() => updateInput('Full')}>🔄 Fullstack</Button>
+	<Button on:click={() => updateInput('DevOps')}>♾️ DevOps</Button>
+	<Button on:click={() => updateInput('QA')}>🔍 QA</Button>
+	<Button on:click={() => updateInput('Manager')}>👔 Manager</Button>
 </div>
 
 <Grid data={filteredData} {columns} fixedHeader={true} {className} search="true" height="800px" />
@@ -135,8 +114,8 @@
 		line-height: 1.25rem;
 		padding-top: 0.5rem;
 		padding-bottom: 0.5rem;
-		max-width: 50px;
-		max-height: 2rem;
+		max-width: 80px;
+
 		word-wrap: break-word;
 		overflow-wrap: break-word;
 	}
@@ -153,6 +132,7 @@
 	:global(.dark-table-class th:focus) {
 		background-color: #181818;
 	}
+
 	:global(.dark-table-class, .light-table-class) {
 		color: var(--tw-text-opacity);
 	}
