@@ -19,16 +19,6 @@ async function getResponseText(url: string): Promise<string> {
 	return response.text();
 }
 
-function convertDate_ISO_to_DD_MM_YYYY(dateIn: any) {
-	const date = new Date(dateIn as string);
-	const formattedDate = [
-		date.getDate().toString().padStart(2, '0'),
-		(date.getMonth() + 1).toString().padStart(2, '0'),
-		date.getFullYear()
-	].join('.');
-	return formattedDate;
-}
-
 function parseAndGetSubLinks(responseText: string): Job[] {
 	const { document } = parseHTML(responseText);
 
@@ -45,7 +35,7 @@ function parseAndGetSubLinks(responseText: string): Job[] {
 				title: titleElement.textContent.trim(),
 				url: BASE_URL + titleElement.href.trim(),
 				company: companyElement.textContent.trim(),
-				time: convertDate_ISO_to_DD_MM_YYYY(timeElement.getAttribute('datetime').trim())
+				time: timeElement.getAttribute('datetime').trim()
 			};
 			jobs.push(job);
 		}

@@ -30,7 +30,15 @@
 			formatter: (cell) => `${cell}€`,
 			sort: true
 		},
-		{ id: 'time', name: 'Objava oglasa', sort: true },
+		{
+			id: 'time',
+			name: 'Objava oglasa',
+			sort: true,
+			formatter: (cell) => {
+				const date = new Date(cell);
+				return date.toLocaleDateString('sl-SI');
+			}
+		},
 		{
 			id: 'url',
 			name: 'URL',
@@ -128,7 +136,7 @@
 			.light-table-class th,
 			.light-table-class td
 		) {
-		padding: 1rem;
+		padding: 0.5rem;
 		background-color: hsl(var(--card) / var(--tw-bg-opacity));
 		border: 1px solid hsl(var(--border) / var(--tw-border-opacity));
 		font-size: 0.875rem;
