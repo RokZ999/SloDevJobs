@@ -15,8 +15,7 @@
 		{ id: 'title', name: 'Naslov' },
 		{
 			id: 'salary',
-			name: 'Plača',
-			formatter: (cell) => `${cell}€`
+			name: 'Plača'
 		},
 		{
 			id: 'normalized_salary',
