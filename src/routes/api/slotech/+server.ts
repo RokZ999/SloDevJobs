@@ -1,17 +1,68 @@
 import type { Job } from '$lib/types/Job';
 import { parseHTML } from 'linkedom';
+import { sql } from '@vercel/postgres';
 
 const BASE_URL = 'https://slo-tech.com';
 
-export async function GET({}): Promise<Response> {
+export async function GET(): Promise<Response> {
+	const savedJobs = await getJobs();
+
 	const responseText = await getResponseText(BASE_URL + '/delo');
-	let jobs = parseAndGetSubLinks(responseText);
+	let newJobs = parseAndGetSubLinks(responseText);
 
-	await addSalaryToEachJob(jobs);
-	await addEstimatedPlaca(jobs);
-	await addEstimatedYearlyPlaca(jobs);
+	const oldJobs = savedJobs.filter(
+		(savedJob) => !newJobs.find((newJob) => newJob.url === savedJob.url)
+	);
 
-	return new Response(JSON.stringify(jobs));
+	newJobs = newJobs.filter((job) => !savedJobs.find((savedJob) => savedJob.url === job.url));
+
+	await deleteOldJobs(oldJobs);
+
+	await addSalaryToEachJob(newJobs);
+	await addEstimatedPlaca(newJobs);
+	await addEstimatedYearlyPlaca(newJobs);
+
+	await saveJobs(newJobs);
+
+	return new Response(JSON.stringify(await getJobs()));
+}
+
+async function deleteOldJobs(oldJobs: Job[]): Promise<void> {
+	await Promise.all(oldJobs.map((job) => sql`DELETE FROM Job WHERE url = ${job.url}`));
+}
+
+async function getJobs(): Promise<Job[]> {
+	const { rows } = await sql`SELECT * from job`;
+	return rows as Job[];
+}
+
+async function saveJobs(jobs: Job[]): Promise<void> {
+	await Promise.all(
+		jobs.map(
+			(job) =>
+				sql`
+                INSERT INTO JOB (
+                    title,
+                    url,
+                    company,
+                    time,
+                    salary,
+                    normalized_salary,
+                    normalized_salary_yearly,
+                    date_inserted
+                ) VALUES (
+                    ${job.title},
+                    ${job.url},
+                    ${job.company},
+                    ${job.time},
+                    ${job.salary || null},
+                    ${job.normalized_salary || null},
+                    ${job.normalized_salary_yearly || null},
+                    CURRENT_TIMESTAMP
+                ) ON CONFLICT (url) DO NOTHING
+            `
+		)
+	);
 }
 
 async function getResponseText(url: string): Promise<string> {
