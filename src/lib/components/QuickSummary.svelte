@@ -9,8 +9,15 @@
 	}
 
 	const jobsCount: number = data.length;
-	const salaries: number[] = data.map((job) => job.normalized_salary);
-	const salaries_yearly: number[] = data.map((job) => job.normalized_salary_yearly);
+
+	const salaries: number[] = data
+		.map((job) => job.normalized_salary)
+		.filter((salary) => salary !== null && salary !== undefined);
+
+	const salaries_yearly: number[] = data
+		.map((job) => job.normalized_salary_yearly)
+		.filter((salary) => salary !== null && salary !== undefined);
+
 	const mediana_monthly = median(salaries);
 	const mediana_yearly = median(salaries_yearly);
 
@@ -24,6 +31,7 @@
 
 		return sorted[middle];
 	}
+	debugger;
 </script>
 
 <div class="flex justify-center space-x-1">
