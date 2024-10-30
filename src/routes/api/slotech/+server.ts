@@ -1,187 +1,222 @@
 import type { Job } from '$lib/types/Job';
 import { parseHTML } from 'linkedom';
 import { sql } from '@vercel/postgres';
+import { z } from 'zod'; // For runtime validation
 
-const BASE_URL = 'https://slo-tech.com';
+// Configuration
+const CONFIG = {
+	BASE_URL: 'https://slo-tech.com',
+	HOURS_PER_MONTH: 168,
+	MAX_SALARY_THRESHOLD: 100000
+} as const;
 
-export async function GET(): Promise<Response> {
-	const savedJobs = await getJobs();
+// Validation schema for Job
+const JobSchema = z.object({
+	title: z.string(),
+	url: z.string().url(),
+	company: z.string(),
+	time: z.string(),
+	salary: z.string().nullable().optional(),
+	normalized_salary: z.number().nullable().optional(),
+	normalized_salary_yearly: z.number().nullable().optional()
+});
 
-	const responseText = await getResponseText(BASE_URL + '/delo');
-	let newJobs = parseAndGetSubLinks(responseText);
-
-	const oldJobs = savedJobs.filter(
-		(savedJob) => !newJobs.find((newJob) => newJob.url === savedJob.url)
-	);
-
-	newJobs = newJobs.filter((job) => !savedJobs.find((savedJob) => savedJob.url === job.url));
-
-	await deleteOldJobs(oldJobs);
-
-	await addSalaryToEachJob(newJobs);
-	await addEstimatedPlaca(newJobs);
-	await addEstimatedYearlyPlaca(newJobs);
-
-	await saveJobs(newJobs);
-
-	return new Response(JSON.stringify(await getJobs()));
+// Custom error class
+class JobScraperError extends Error {
+	constructor(
+		message: string,
+		public readonly context?: unknown
+	) {
+		super(message);
+		this.name = 'JobScraperError';
+	}
 }
 
-async function deleteOldJobs(oldJobs: Job[]): Promise<void> {
-	await Promise.all(oldJobs.map((job) => sql`DELETE FROM Job WHERE url = ${job.url}`));
+// Database operations
+class JobRepository {
+	static async getAll(): Promise<Job[]> {
+		const { rows } = await sql`SELECT * FROM job`;
+		return rows as Job[];
+	}
+
+	static async deleteByUrls(urls: string[]): Promise<void> {
+		if (urls.length === 0) return;
+		await sql`DELETE FROM Job WHERE url = ANY(${urls})`;
+	}
+
+	static async saveMany(jobs: Job[]): Promise<void> {
+		if (jobs.length === 0) return;
+
+		const values = jobs.map((job) => ({
+			title: job.title,
+			url: job.url,
+			company: job.company,
+			time: job.time,
+			salary: job.salary,
+			normalized_salary: job.normalized_salary,
+			normalized_salary_yearly: job.normalized_salary_yearly
+		}));
+
+		await sql`
+            INSERT INTO JOB ${sql(values)}
+            ON CONFLICT (url) DO NOTHING
+        `;
+	}
 }
 
-async function getJobs(): Promise<Job[]> {
-	const { rows } = await sql`SELECT * from job`;
-	return rows as Job[];
-}
+// Salary processing
+class SalaryProcessor {
+	private static findNumberInString(str: string): number {
+		const matches = str.match(/\d+/g);
+		return matches ? parseInt(matches[0], 10) : 0;
+	}
 
-async function saveJobs(jobs: Job[]): Promise<void> {
-	await Promise.all(
-		jobs.map(
-			(job) =>
-				sql`
-                INSERT INTO JOB (
-                    title,
-                    url,
-                    company,
-                    time,
-                    salary,
-                    normalized_salary,
-                    normalized_salary_yearly,
-                    date_inserted
-                ) VALUES (
-                    ${job.title},
-                    ${job.url},
-                    ${job.company},
-                    ${job.time},
-                    ${job.salary || null},
-                    ${job.normalized_salary || null},
-                    ${job.normalized_salary_yearly || null},
-                    CURRENT_TIMESTAMP
-                ) ON CONFLICT (url) DO NOTHING
-            `
-		)
-	);
-}
+	static normalizeSalary(salary: string): number | null {
+		if (!salary) return null;
 
-async function getResponseText(url: string): Promise<string> {
-	const response = await fetch(url);
-	return response.text();
-}
+		const normalizedString = salary
+			.toLowerCase()
+			.replace(/ do |-/g, '-')
+			.replace(/[.,]00 /g, ' ')
+			.replace(/[,.](\d{2})/g, '')
+			.replace(/[.,]/g, '');
 
-function parseAndGetSubLinks(responseText: string): Job[] {
-	const { document } = parseHTML(responseText);
+		const isHourlyRate = normalizedString.includes('uro');
+		const isThousands =
+			normalizedString.includes('k bruto') || normalizedString.trim().includes('k-');
+		const isRange = normalizedString.includes('-');
 
-	const jobRows = document.querySelectorAll('tbody > tr');
-	const jobs: Job[] = [];
+		let result: number;
 
-	jobRows.forEach((row) => {
-		const titleElement = row.querySelector('td.name h3 a') as HTMLAnchorElement;
-		const companyElement = row.querySelector('td.company a') as HTMLAnchorElement;
-		const timeElement = row.querySelector('td.last_msg time') as HTMLTimeElement;
+		if (isRange) {
+			const [min, max] = normalizedString.split('-').map((part) => this.findNumberInString(part));
+			const average = (min + max) / 2;
 
-		if (titleElement && companyElement && timeElement) {
-			const job: Job = {
-				title: titleElement.textContent.trim(),
-				url: BASE_URL + titleElement.href.trim(),
-				company: companyElement.textContent.trim(),
-				time: timeElement.getAttribute('datetime').trim()
-			};
-			jobs.push(job);
-		}
-	});
-
-	return jobs;
-}
-
-async function addSalaryToEachJob(jobs: Job[]): Promise<void> {
-	await Promise.all(
-		jobs.map(async (job) => {
-			const responseText = await getResponseText(job.url);
-			const { document } = parseHTML(responseText);
-
-			const dtElements = document.querySelectorAll('dl dt');
-			let salaryElement: HTMLElement | null = null;
-
-			dtElements.forEach((dtElement) => {
-				if (dtElement.textContent?.includes('Plačilo:')) {
-					salaryElement = dtElement.nextElementSibling as HTMLElement;
-				}
-			});
-
-			if (salaryElement) {
-				job.salary = salaryElement.textContent.trim();
-			}
-		})
-	);
-}
-
-async function addEstimatedPlaca(jobs: Job[]): Promise<void> {
-	await Promise.all(
-		jobs.map((job) => {
-			if (job.salary) {
-				const estimatedPlaca = parseSalary(job.salary);
-				job.normalized_salary = estimatedPlaca;
-			}
-		})
-	);
-}
-
-async function addEstimatedYearlyPlaca(jobs: Job[]): Promise<void> {
-	await Promise.all(
-		jobs.map((job) => {
-			if (job.normalized_salary !== null && job.normalized_salary !== undefined) {
-				if (job.salary?.includes('projekt')) {
-					job.normalized_salary_yearly = 0;
-				} else {
-					job.normalized_salary_yearly = job.normalized_salary * 12;
-				}
-			}
-		})
-	);
-}
-
-function findNumberInString(str: string): number {
-	const regex = /\d+/g;
-	const number = str.match(regex);
-
-	return number ? parseInt(number[0].trim()) : 0;
-}
-
-function parseSalary(salary: string): number | null {
-	salary = salary
-		.toLowerCase()
-		.replaceAll(' do ', '-')
-		.replaceAll('.00 ', '')
-		.replaceAll(',00 ', '')
-		.replace(/\,\d{2}/g, '')
-		.replaceAll('.', '')
-		.replaceAll(',', '');
-
-	let result = -1;
-
-	if (salary.includes('-')) {
-		let both = salary.split('-');
-		let left = findNumberInString(both[0]);
-		let right = findNumberInString(both[1]);
-
-		if (salary.includes('uro')) {
-			if ((left + right) / 2 > 1000) {
-				result = (left + right) / 2;
+			if (isHourlyRate) {
+				result = average > 1000 ? average : average * CONFIG.HOURS_PER_MONTH;
+			} else if (isThousands) {
+				result = average * 1000;
 			} else {
-				result = ((left + right) / 2) * 168;
+				result = average;
 			}
-		} else if (salary.includes('k bruto') || salary.trim().includes('k-')) {
-			result = ((left + right) / 2) * 1000;
+		} else if (isHourlyRate) {
+			result = this.findNumberInString(normalizedString) * CONFIG.HOURS_PER_MONTH;
 		} else {
-			result = (left + right) / 2;
+			result = this.findNumberInString(normalizedString);
 		}
-	} else if (salary.includes('uro')) {
-		result = findNumberInString(salary) * 168;
-	} else result = findNumberInString(salary);
 
-	result = result > 100000 ? result / 100 : result;
+		return result > CONFIG.MAX_SALARY_THRESHOLD ? result / 100 : result;
+	}
 
-	return result;
+	static calculateYearlySalary(
+		monthlySalary: number | null,
+		salaryDescription: string | undefined
+	): number | null {
+		if (monthlySalary === null) return null;
+		return salaryDescription?.includes('projekt') ? 0 : monthlySalary * 12;
+	}
+}
+
+// Job scraping
+class JobScraper {
+	private static async fetchHtml(url: string): Promise<string> {
+		try {
+			const response = await fetch(url);
+			if (!response.ok) {
+				throw new JobScraperError(`Failed to fetch URL: ${url}`, { status: response.status });
+			}
+			return response.text();
+		} catch (error) {
+			throw new JobScraperError('Network error while fetching HTML', { error });
+		}
+	}
+
+	static parseJobListings(html: string): Job[] {
+		const { document } = parseHTML(html);
+		const jobs: Job[] = [];
+
+		document.querySelectorAll('tbody > tr').forEach((row) => {
+			try {
+				const titleElement = row.querySelector('td.name h3 a');
+				const companyElement = row.querySelector('td.company a');
+				const timeElement = row.querySelector('td.last_msg time');
+
+				if (!titleElement || !companyElement || !timeElement) return;
+
+				const job: Job = {
+					title: titleElement.textContent?.trim() ?? '',
+					url: CONFIG.BASE_URL + titleElement.getAttribute('href')?.trim(),
+					company: companyElement.textContent?.trim() ?? '',
+					time: timeElement.getAttribute('datetime')?.trim() ?? ''
+				};
+
+				// Validate job data
+				JobSchema.parse(job);
+				jobs.push(job);
+			} catch (error) {
+				console.error('Error parsing job row:', error);
+			}
+		});
+
+		return jobs;
+	}
+
+	static async getSalaryFromJobPage(url: string): Promise<string | null> {
+		const html = await this.fetchHtml(url);
+		const { document } = parseHTML(html);
+
+		const salaryElement = Array.from(document.querySelectorAll('dl dt')).find((el) =>
+			el.textContent?.includes('Plačilo:')
+		)?.nextElementSibling;
+
+		return salaryElement?.textContent?.trim() ?? null;
+	}
+}
+
+// Main handler
+export async function GET(): Promise<Response> {
+	try {
+		// Get existing jobs
+		const savedJobs = await JobRepository.getAll();
+
+		// Fetch and parse new job listings
+		const html = await JobScraper.fetchHtml(CONFIG.BASE_URL + '/delo');
+		const newJobListings = JobScraper.parseJobListings(html);
+
+		// Find jobs to delete
+		const jobsToDelete = savedJobs.filter(
+			(saved) => !newJobListings.some((newJob) => newJob.url === saved.url)
+		);
+		await JobRepository.deleteByUrls(jobsToDelete.map((job) => job.url));
+
+		// Filter out existing jobs from new listings
+		const uniqueNewJobs = newJobListings.filter(
+			(newJob) => !savedJobs.some((saved) => saved.url === newJob.url)
+		);
+
+		if (uniqueNewJobs.length === 0) {
+			return new Response(JSON.stringify(savedJobs));
+		}
+
+		// Enrich job data
+		await Promise.all(
+			uniqueNewJobs.map(async (job) => {
+				job.salary = await JobScraper.getSalaryFromJobPage(job.url);
+				job.normalized_salary = SalaryProcessor.normalizeSalary(job.salary ?? '');
+				job.normalized_salary_yearly = SalaryProcessor.calculateYearlySalary(
+					job.normalized_salary,
+					job.salary
+				);
+			})
+		);
+
+		// Save new jobs
+		await JobRepository.saveMany(uniqueNewJobs);
+
+		// Return updated job list
+		return new Response(JSON.stringify(await JobRepository.getAll()));
+	} catch (error) {
+		console.error('Error in GET handler:', error);
+		return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 });
+	}
 }
