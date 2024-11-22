@@ -27,7 +27,7 @@ export async function GET(): Promise<Response> {
 
 // Fetch existing jobs from the database
 async function fetchJobsFromDatabase(): Promise<Job[]> {
-	const { rows } = await sql`SELECT * FROM job`;
+	const { rows } = await sql`SELECT * FROM job ORDER BY time desc`;
 	return rows as Job[];
 }
 
